@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="id" class="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DompetRantau — Uang rantau, tercatat rapi.</title>
+
+  <!-- Favicon inline SVG dompet -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2314b8a6'/><rect x='4' y='10' width='24' height='16' rx='3' fill='%23fff' opacity='.9'/><rect x='4' y='12' width='24' height='5' fill='%230d9488'/><circle cx='22' cy='20' r='3' fill='%2314b8a6'/><rect x='4' y='8' width='16' height='4' rx='2' fill='%230d9488'/></svg>" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            aksen: {
+              50:  '#f0fdfa',
+              100: '#ccfbf1',
+              200: '#99f6e4',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Kustom CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen font-sans antialiased">
+
+<!-- =====================================================================
+     HEADER
+     ===================================================================== -->
+<header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40 shadow-sm">
+  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <!-- Logo + Nama -->
+    <div class="flex items-center gap-3">
+      <!-- Ikon dompet SVG inline -->
+      <svg class="w-9 h-9 flex-shrink-0" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="36" height="36" rx="10" fill="#14b8a6"/>
+        <rect x="5" y="12" width="26" height="17" rx="3.5" fill="white" fill-opacity="0.92"/>
+        <rect x="5" y="14" width="26" height="6" fill="#0d9488"/>
+        <circle cx="24.5" cy="22.5" r="3.5" fill="#14b8a6"/>
+        <rect x="5" y="9" width="18" height="5" rx="2.5" fill="#0d9488"/>
+      </svg>
+      <div>
+        <h1 class="text-xl font-bold text-slate-800 dark:text-white leading-tight">DompetRantau</h1>
+        <p class="text-xs text-slate-400 dark:text-slate-400 leading-none">Uang rantau, tercatat rapi.</p>
+      </div>
+    </div>
+    <!-- Toggle tema -->
+    <button id="btn-toggle-tema"
+      class="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+      aria-label="Toggle tema gelap/terang">
+      🌙 Gelap
+    </button>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 py-6 space-y-8">
+
+  <!-- =================================================================
+       KARTU SALDO
+       ================================================================= -->
+  <section aria-labelledby="heading-saldo">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <!-- Nominal & estimasi -->
+        <div>
+          <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1" id="heading-saldo">Saldo Sekarang</p>
+          <p id="saldo-nominal" class="text-4xl font-bold text-emerald-500">Rp 0</p>
+          <p id="saldo-estimasi" class="text-sm text-slate-400 dark:text-slate-500 mt-1">–</p>
+          <!-- Peringatan saldo negatif -->
+          <div id="saldo-warning" class="hidden mt-2 items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg">
+            <span>⚠️</span>
+            <span>Saldo negatif! Cek kembali catatan pemasukan.</span>
+          </div>
+        </div>
+        <!-- Tombol saldo -->
+        <div class="flex gap-2 flex-shrink-0">
+          <button id="btn-tambah-saldo"
+            class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shadow-sm transition-colors">
+            + Tambah Saldo
+          </button>
+          <button id="btn-kurang-saldo"
+            class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 text-sm font-semibold border border-red-200 dark:border-red-800 transition-colors">
+            − Kurangi Saldo
+          </button>
+        </div>
+      </div>
+
+      <!-- Riwayat penyesuaian saldo -->
+      <details class="mt-5">
+        <summary class="cursor-pointer text-sm font-medium text-slate-500 dark:text-slate-400 select-none hover:text-aksen-600 dark:hover:text-aksen-500 transition-colors">
+          Lihat riwayat penyesuaian saldo ▾
+        </summary>
+        <div id="riwayat-saldo-list" class="mt-3 max-h-56 overflow-y-auto pr-1">
+          <!-- Diisi oleh JS -->
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       PEMILIH BULAN + KARTU RINGKASAN
+       ================================================================= -->
+  <section aria-label="Ringkasan dan filter bulan">
+    <!-- Pemilih bulan -->
+    <div class="flex items-center gap-3 mb-4">
+      <label for="pilih-bulan" class="text-sm font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">Tampilkan bulan:</label>
+      <select id="pilih-bulan"
+        class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 focus:border-transparent outline-none transition">
+        <!-- Diisi oleh JS -->
+      </select>
+    </div>
+    <!-- Kartu ringkasan 4-grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 text-center shadow-sm">
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">Total Pengeluaran</p>
+        <p id="ringkasan-total" class="text-xl font-bold text-slate-700 dark:text-slate-100">Rp 0</p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 text-center shadow-sm">
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">Rata-rata per Hari</p>
+        <p id="ringkasan-rata-hari" class="text-xl font-bold text-slate-700 dark:text-slate-100">Rp 0</p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 text-center shadow-sm">
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">Kategori Terbesar</p>
+        <p id="ringkasan-kat-terbesar" class="text-xl font-bold text-slate-700 dark:text-slate-100">–</p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 text-center shadow-sm">
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">Jumlah Transaksi</p>
+        <p id="ringkasan-jml-transaksi" class="text-xl font-bold text-slate-700 dark:text-slate-100">0</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       FORM INPUT MANUAL + IMPORT CSV
+       ================================================================= -->
+  <section aria-labelledby="heading-input">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- Form tambah transaksi -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+        <h2 id="heading-input" class="text-base font-semibold text-slate-700 dark:text-slate-200 mb-4">Catat Pengeluaran</h2>
+        <form id="form-tambah-transaksi" novalidate>
+          <div class="space-y-3">
+            <!-- Tanggal -->
+            <div>
+              <label for="inp-tanggal" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tanggal</label>
+              <input type="date" id="inp-tanggal" name="tanggal" required
+                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 focus:border-transparent outline-none" />
+            </div>
+            <!-- Deskripsi -->
+            <div>
+              <label for="inp-deskripsi" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Deskripsi</label>
+              <input type="text" id="inp-deskripsi" name="deskripsi" required placeholder="Contoh: Makan siang"
+                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 focus:border-transparent outline-none" />
+            </div>
+            <!-- Kategori -->
+            <div>
+              <label for="inp-kategori" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Kategori</label>
+              <select id="inp-kategori" name="kategori" required
+                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 focus:border-transparent outline-none">
+                <option value="">Pilih kategori…</option>
+                <option>Makanan</option>
+                <option>Transportasi</option>
+                <option>Belanja</option>
+                <option>Tagihan</option>
+                <option>Hiburan</option>
+                <option>Kesehatan</option>
+                <option>Pendidikan</option>
+                <option>Lainnya</option>
+              </select>
+            </div>
+            <!-- Jumlah -->
+            <div>
+              <label for="inp-jumlah" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Jumlah (Rp)</label>
+              <input type="number" id="inp-jumlah" name="jumlah" required min="1" placeholder="0"
+                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 focus:border-transparent outline-none" />
+            </div>
+          </div>
+          <p id="form-tambah-pesan" hidden class="text-sm mt-1"></p>
+          <button type="submit"
+            class="mt-4 w-full py-2.5 rounded-xl bg-aksen-500 hover:bg-aksen-600 text-white font-semibold text-sm transition-colors shadow-sm">
+            Tambah Pengeluaran
+          </button>
+        </form>
+      </div>
+
+      <!-- Import CSV -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+        <h2 class="text-base font-semibold text-slate-700 dark:text-slate-200 mb-2">Import CSV</h2>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-4">Format kolom: <code class="bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded text-xs font-mono">tanggal,deskripsi,kategori,jumlah</code></p>
+        <!-- Mode import -->
+        <div class="mb-4">
+          <label for="mode-import" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Mode import</label>
+          <select id="mode-import"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 outline-none">
+            <option value="gabung">Gabungkan dengan data yang ada</option>
+            <option value="timpa">Timpa semua data</option>
+          </select>
+        </div>
+        <input type="file" id="input-csv" accept=".csv" class="hidden" aria-label="Pilih file CSV" />
+        <button id="btn-import-csv"
+          class="w-full py-2.5 rounded-xl border-2 border-dashed border-aksen-300 dark:border-aksen-700 text-aksen-600 dark:text-aksen-400 font-semibold text-sm hover:bg-aksen-50 dark:hover:bg-aksen-900/20 transition-colors">
+          📂 Pilih File CSV…
+        </button>
+        <div id="import-error" hidden class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <!-- Pesan error/sukses import -->
+        </div>
+        <!-- Hint download sample -->
+        <p class="mt-3 text-xs text-slate-400 dark:text-slate-500">
+          Unduh contoh:
+          <a href="sample-expenses.csv" download class="text-aksen-600 dark:text-aksen-400 hover:underline font-medium">sample-expenses.csv</a>
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =================================================================
+       GRAFIK
+       ================================================================= -->
+  <section aria-labelledby="heading-grafik">
+    <h2 id="heading-grafik" class="text-base font-semibold text-slate-700 dark:text-slate-200 mb-4">Grafik</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- Doughnut distribusi per kategori -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+        <p class="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-4">Distribusi per Kategori</p>
+        <div class="chart-container h-64">
+          <canvas id="chart-doughnut" aria-label="Grafik distribusi pengeluaran per kategori"></canvas>
+        </div>
+      </div>
+
+      <!-- Bar chart tren bulanan -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+        <p class="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-4">Tren Pengeluaran Bulanan</p>
+        <div class="chart-container h-64">
+          <canvas id="chart-tren" aria-label="Grafik tren pengeluaran bulanan"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =================================================================
+       BUDGET BULANAN
+       ================================================================= -->
+  <section aria-labelledby="heading-budget">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="heading-budget" class="text-base font-semibold text-slate-700 dark:text-slate-200">Budget Bulanan per Kategori</h2>
+        <p class="text-xs text-slate-400 dark:text-slate-500">Edit nominal langsung di kolom budget</p>
+      </div>
+      <!-- Total ringkas -->
+      <div class="flex gap-6 mb-5 text-sm">
+        <span class="text-slate-500 dark:text-slate-400">Total dipakai: <strong id="budget-total-pengeluaran" class="text-slate-700 dark:text-slate-200">Rp 0</strong></span>
+        <span class="text-slate-500 dark:text-slate-400">Total budget: <strong id="budget-total-budget" class="text-slate-700 dark:text-slate-200">Rp 0</strong></span>
+      </div>
+      <div id="budget-list">
+        <!-- Diisi oleh JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       INSIGHT & SARAN
+       ================================================================= -->
+  <section aria-labelledby="heading-insight">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+      <h2 id="heading-insight" class="text-base font-semibold text-slate-700 dark:text-slate-200 mb-4">💡 Insight & Saran</h2>
+      <div id="insight-list" class="space-y-3">
+        <!-- Diisi oleh JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       TABEL TRANSAKSI
+       ================================================================= -->
+  <section aria-labelledby="heading-tabel">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <h2 id="heading-tabel" class="text-base font-semibold text-slate-700 dark:text-slate-200">Riwayat Transaksi</h2>
+        <button id="btn-ekspor-csv"
+          class="flex-shrink-0 px-4 py-1.5 rounded-xl bg-aksen-500 hover:bg-aksen-600 text-white text-sm font-semibold shadow-sm transition-colors">
+          ⬇ Ekspor CSV
+        </button>
+      </div>
+
+      <!-- Filter & Cari -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <input type="text" id="cari-transaksi" placeholder="Cari deskripsi…"
+          class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-aksen-500 outline-none" />
+        <select id="filter-kategori"
+          class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-aksen-500 outline-none">
+          <option value="">Semua Kategori</option>
+          <option>Makanan</option>
+          <option>Transportasi</option>
+          <option>Belanja</option>
+          <option>Tagihan</option>
+          <option>Hiburan</option>
+          <option>Kesehatan</option>
+          <option>Pendidikan</option>
+          <option>Lainnya</option>
+        </select>
+        <input type="month" id="filter-bulan-awal" placeholder="Dari bulan"
+          class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-aksen-500 outline-none"
+          title="Dari bulan" aria-label="Dari bulan" />
+        <input type="month" id="filter-bulan-akhir" placeholder="Sampai bulan"
+          class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-aksen-500 outline-none"
+          title="Sampai bulan" aria-label="Sampai bulan" />
+      </div>
+
+      <!-- Jumlah & total hasil -->
+      <div class="flex gap-4 mb-3 text-xs text-slate-400 dark:text-slate-500">
+        <span id="tabel-jumlah">0 transaksi</span>
+        <span>Total: <strong id="tabel-total" class="text-slate-600 dark:text-slate-300">Rp 0</strong></span>
+      </div>
+
+      <!-- Tabel -->
+      <div class="tabel-wrapper">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              <th data-sortkey="tanggal" class="py-2 px-3 text-left font-semibold">Tanggal <span class="sort-ind text-aksen-500">⇅</span></th>
+              <th data-sortkey="deskripsi" class="py-2 px-3 text-left font-semibold">Deskripsi <span class="sort-ind text-aksen-500">⇅</span></th>
+              <th data-sortkey="kategori"  class="py-2 px-3 text-left font-semibold">Kategori <span class="sort-ind text-aksen-500">⇅</span></th>
+              <th data-sortkey="jumlah"    class="py-2 px-3 text-right font-semibold">Jumlah <span class="sort-ind text-aksen-500">⇅</span></th>
+              <th class="py-2 px-3 text-right font-semibold">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tabel-body">
+            <!-- Diisi oleh JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       TOMBOL RESET
+       ================================================================= -->
+  <section class="pb-4 text-center">
+    <button id="btn-reset"
+      class="px-5 py-2 rounded-xl border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+      🔄 Reset ke Data Awal
+    </button>
+    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Semua data akan dikembalikan ke kondisi awal aplikasi.</p>
+  </section>
+
+</main>
+
+<!-- =====================================================================
+     MODAL TAMBAH / EDIT TRANSAKSI
+     ===================================================================== -->
+<div id="modal-transaksi" hidden role="dialog" aria-modal="true" aria-labelledby="modal-transaksi-judul" class="modal-backdrop">
+  <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md border border-slate-200 dark:border-slate-700 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="modal-transaksi-judul" class="text-base font-semibold text-slate-700 dark:text-slate-200">Edit Transaksi</h3>
+      <button id="btn-tutup-modal-transaksi" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none" aria-label="Tutup modal">×</button>
+    </div>
+    <form id="form-transaksi" novalidate>
+      <div class="space-y-3">
+        <div>
+          <label for="modal-tanggal" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tanggal</label>
+          <input type="date" id="modal-tanggal" name="tanggal" required
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 outline-none" />
+        </div>
+        <div>
+          <label for="modal-deskripsi" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Deskripsi</label>
+          <input type="text" id="modal-deskripsi" name="deskripsi" required
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 outline-none" />
+        </div>
+        <div>
+          <label for="modal-kategori" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Kategori</label>
+          <select id="modal-kategori" name="kategori" required
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 outline-none">
+            <option value="">Pilih kategori…</option>
+            <option>Makanan</option>
+            <option>Transportasi</option>
+            <option>Belanja</option>
+            <option>Tagihan</option>
+            <option>Hiburan</option>
+            <option>Kesehatan</option>
+            <option>Pendidikan</option>
+            <option>Lainnya</option>
+          </select>
+        </div>
+        <div>
+          <label for="modal-jumlah" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Jumlah (Rp)</label>
+          <input type="number" id="modal-jumlah" name="jumlah" required min="1"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 outline-none" />
+        </div>
+      </div>
+      <p id="modal-transaksi-pesan" hidden class="text-sm mt-1"></p>
+      <div class="flex gap-3 mt-5">
+        <button type="button" id="btn-batal-modal-transaksi"
+          class="flex-1 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+          Batal
+        </button>
+        <button type="submit"
+          class="flex-1 py-2 rounded-xl bg-aksen-500 hover:bg-aksen-600 text-white text-sm font-semibold transition-colors">
+          Simpan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =====================================================================
+     MODAL PENYESUAIAN SALDO
+     ===================================================================== -->
+<div id="modal-saldo" hidden role="dialog" aria-modal="true" aria-labelledby="modal-saldo-judul" class="modal-backdrop">
+  <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm border border-slate-200 dark:border-slate-700 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="modal-saldo-judul" class="text-base font-semibold text-slate-700 dark:text-slate-200">Tambah Saldo</h3>
+      <button id="btn-tutup-modal-saldo" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl leading-none" aria-label="Tutup modal">×</button>
+    </div>
+    <form id="form-saldo" novalidate>
+      <div class="space-y-3">
+        <div>
+          <label for="saldo-tanggal" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tanggal</label>
+          <input type="date" id="saldo-tanggal" name="tanggal" required
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 outline-none" />
+        </div>
+        <div>
+          <label for="saldo-jumlah" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Jumlah (Rp)</label>
+          <input type="number" id="saldo-jumlah" name="jumlah" required min="1" placeholder="0"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 outline-none" />
+        </div>
+        <div>
+          <label for="saldo-catatan" class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Catatan</label>
+          <input type="text" id="saldo-catatan" name="catatan" required placeholder="Contoh: Kiriman orang tua"
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:ring-2 focus:ring-aksen-500 outline-none" />
+        </div>
+      </div>
+      <p id="modal-saldo-pesan" hidden class="text-sm mt-1"></p>
+      <div class="flex gap-3 mt-5">
+        <button type="button" id="btn-batal-modal-saldo"
+          class="flex-1 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+          Batal
+        </button>
+        <button type="submit"
+          class="flex-1 py-2 rounded-xl bg-aksen-500 hover:bg-aksen-600 text-white text-sm font-semibold transition-colors">
+          Simpan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =====================================================================
+     APP MODULE
+     ===================================================================== -->
+<script type="module" src="js/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,39 @@
+/* style.css — kustomisasi tambahan di luar Tailwind untuk DompetRantau */
+
+/* ===== Scrollbar tipis ===== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+/* ===== Fokus outline aksen teal ===== */
+:focus-visible { outline: 2px solid #14b8a6; outline-offset: 2px; }
+
+/* ===== Transisi tema ===== */
+html { transition: background-color 0.2s, color 0.2s; }
+
+/* ===== Progress bar animasi ===== */
+@keyframes grow {
+  from { width: 0; }
+}
+.bar-animate { animation: grow 0.5s ease-out; }
+
+/* ===== Tabel scroll responsif ===== */
+.tabel-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ===== Modal backdrop ===== */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+.dark .modal-backdrop { background: rgba(0, 0, 0, 0.65); }
+
+/* ===== Chart container ===== */
+.chart-container { position: relative; }
+
+/* ===== Tombol sort header kolom ===== */
+th[data-sortkey] { cursor: pointer; user-select: none; }
+th[data-sortkey]:hover { background-color: rgba(20, 184, 166, 0.08); }
